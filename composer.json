@@ -1,0 +1,40 @@
+{
+    "name": "therour/wp-api-client",
+    "description": "Wordpress REST Api Laravel client",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nizom Sidiq",
+            "email": "nizomsidiq@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^7.1.13",
+        "guzzlehttp/guzzle": "~6.0",
+        "illuminate/support": "5.8.*|6.0.*",
+        "illuminate/container": "5.8.*|6.0.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.5",
+        "orchestra/testbench": "3.8.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Therour\\WpApiClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Therour\\WpApiClientTests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Therour\\WpApiClient\\Providers\\WpApiClientProvider"
+            ]
+        }
+    }
+}

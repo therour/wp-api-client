@@ -13,9 +13,45 @@ abstract class WpModel
 
     protected $attributes = [];
 
+    protected $dates = [];
+
+    protected $referenceIds = [];
+
     public function __construct($attributes = [])
     {
-        $this->attributes = $attributes;
+        foreach ($attributes as $key => $value) {
+            $this->setAttribute($key, $value);
+        }
+    }
+
+    protected function setAttribute($key, $value)
+    {
+        if ($this->isDateAttribute($key)) {
+            $value = \Illuminate\Support\Carbon::parse($value);
+        } elseif ($this->isReferenceId($key)) {
+            $key = $key.'_id';
+        }
+
+        $this->attributes[$key] = $value;
+    }
+
+    protected function isDateAttribute($key)
+    {
+        return in_array($key, $this->dates);
+    }
+
+    protected function isReferenceId($key)
+    {
+        return in_array($key, $this->referenceIds);
+    }
+
+    public function getAttribute($key)
+    {
+        if ($this->isReferenceId($key)) {
+            $key = $key.'_id';
+        }
+
+        return $this->attributes[$key] ?? null;
     }
 
     /**
@@ -71,6 +107,6 @@ abstract class WpModel
      */
     public function __get($key)
     {
-        return array_key_exists($key, $this->attributes) ? $this->attributes[$key] : null;
+        return $this->getAttribute($key);
     }
 }

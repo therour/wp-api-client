@@ -47,9 +47,14 @@ class Builder
     public function get()
     {
         $json = $this->execute($this->param());
-        return collect(json_decode($json, true))->map(function ($data) {
-            return $this->newModelInstance($data);
+        return collect(json_decode($json))->map(function ($data) {
+            return $this->newModelInstance((array) $data);
         });
+    }
+
+    public function first()
+    {
+        return $this->get()->first();
     }
 
     public function paginate($perPage = 10, $page = null, $pageName = 'page')
