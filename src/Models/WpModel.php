@@ -2,10 +2,14 @@
 
 namespace Therour\WpApiClient\Models;
 
-use Illuminate\Support\Traits\ForwardsCalls;
+use ArrayAccess;
+use JsonSerializable;
 use Therour\WpApiClient\Query\Builder;
+use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Traits\ForwardsCalls;
 
-abstract class WpModel
+abstract class WpModel implements Arrayable, ArrayAccess, Jsonable, JsonSerializable
 {
     use ForwardsCalls;
 
@@ -24,7 +28,7 @@ abstract class WpModel
         }
     }
 
-    protected function setAttribute($key, $value)
+    public function setAttribute($key, $value)
     {
         if ($this->isDateAttribute($key)) {
             $value = \Illuminate\Support\Carbon::parse($value);
@@ -45,13 +49,19 @@ abstract class WpModel
         return in_array($key, $this->referenceIds);
     }
 
+    protected function getKeyName($key)
+    {
+        return $this->isReferenceId($key) ? $key.'_id' : $key;
+    }
+
     public function getAttribute($key)
     {
-        if ($this->isReferenceId($key)) {
-            $key = $key.'_id';
-        }
+        return $this->attributes[$this->getKeyName($key)] ?? null;
+    }
 
-        return $this->attributes[$key] ?? null;
+    public function attributesToArray()
+    {
+        return $this->attributes;
     }
 
     /**
@@ -108,5 +118,60 @@ abstract class WpModel
     public function __get($key)
     {
         return $this->getAttribute($key);
+    }
+
+    /**
+     * Convert the model instance to an array.
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        return $this->attributesToArray();
+    }
+
+    /**
+     * Convert the model instance to JSON.
+     *
+     * @param  int  $options
+     * @return string
+     *
+     * @throws \Illuminate\Database\Eloquent\JsonEncodingException
+     */
+    public function toJson($options = 0)
+    {
+        $json = json_encode($this->jsonSerialize(), $options);
+
+        return $json;
+    }
+
+    /**
+     * Convert the object into something JSON serializable.
+     *
+     * @return array
+     */
+    public function jsonSerialize()
+    {
+        return $this->toArray();
+    }
+
+    public function offsetExists($offset)
+    {
+        return isset($this->attributes[$this->getKeyName($offset)]);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->getAttribute($offset);
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        return $this->setAttribute($offset, $value);
+    }
+
+    public function offsetUnset($offset)
+    {
+        return;
     }
 }

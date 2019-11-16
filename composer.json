@@ -13,8 +13,8 @@
     "require": {
         "php": "^7.1.13",
         "guzzlehttp/guzzle": "~6.0",
-        "illuminate/support": "5.8.*|6.0.*",
-        "illuminate/container": "5.8.*|6.0.*"
+        "illuminate/support": "5.8.*|6.*",
+        "illuminate/container": "5.8.*|6.*"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.5",

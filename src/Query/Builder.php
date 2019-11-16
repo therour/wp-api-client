@@ -2,14 +2,17 @@
 
 namespace Therour\WpApiClient\Query;
 
+use BadMethodCallException;
 use Illuminate\Support\Str;
 use Illuminate\Pagination\Paginator;
 use Therour\WpApiClient\Models\WpModel;
+use Illuminate\Support\Traits\ForwardsCalls;
 
 class Builder
 {
     use Concerns\BuildParams,
-        Concerns\BuildExecutor;
+        Concerns\BuildExecutor,
+        ForwardsCalls;
 
     /**
      * resource name
@@ -39,6 +42,8 @@ class Builder
         return $this->newModelInstance(json_decode($json, true));
     }
 
+    public $relations = [];
+
     /**
      * execute query and collect the data.
      *
@@ -47,9 +52,29 @@ class Builder
     public function get()
     {
         $json = $this->execute($this->param());
-        return collect(json_decode($json))->map(function ($data) {
+        $collection =  collect(json_decode($json))->map(function ($data) {
             return $this->newModelInstance((array) $data);
         });
+        foreach ($this->relations as $key => $class) {
+            $relatedIds = $collection->map->$key->flatten()->unique()->values();
+            if ($relatedIds->isEmpty()) {
+                $collection->map(function ($model) use ($key) {
+                    $model->setAttribute($key, is_array($model->$key) ? [] : null);
+                    return $model;
+                });
+            } else {
+                $relatedClasses = (new $class)->whereIn($relatedIds->all())->get()->keyBy->id;
+                $collection->map(function ($model) use ($key, $relatedClasses) {
+                    if (is_array($model->$key)) {
+                        $model->setAttribute($key, $relatedClasses->only($model->$key)->values());
+                    } else {
+                        $model->setAttribute($key, $relatedClasses[$model->$key] ?? null);
+                    }
+                    return $model;
+                });
+            }
+        }
+        return $collection;
     }
 
     public function first()
@@ -63,7 +88,11 @@ class Builder
 
         $this->page($page)->perPage($perPage);
 
-        return $this->simplePaginator($this->get(), $perPage, $page, []);
+        $items = $this->get();
+        return $this->simplePaginator($items, $perPage, $page, [
+            'path' => url()->current(),
+            'pageName' => 'page',
+        ])->hasMorePagesWhen($items->count() == $perPage);
     }
 
     /**
@@ -77,7 +106,7 @@ class Builder
      */
     protected function simplePaginator($items, $perPage, $currentPage, $options)
     {
-        return Container::getInstance()->makeWith(Paginator::class, compact(
+        return app()->makeWith(Paginator::class, compact(
             'items',
             'perPage',
             'currentPage',
@@ -93,5 +122,16 @@ class Builder
     protected function newModelInstance($attributes = [])
     {
         return $this->model->newInstance($attributes);
+    }
+
+    public function __call($name, $arguments)
+    {
+        try {
+            $this->forwardCallTo($this->param(), $name, $arguments);
+            return $this;
+        } catch (BadMethodCallException $ex) {
+            $className = get_class($this);
+            throw new BadMethodCallException("Method {$className}::{$name} does not exists");
+        }
     }
 }

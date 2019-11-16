@@ -1,8 +1,8 @@
 <?php
 
-namespace Therour\WpApiClient\Executor;
+namespace Therour\WpApiClient\Contracts;
 
-use Therour\WpApiClient\Param;
+use Therour\WpApiClient\Contracts\ExecutableParam;
 
 interface WpApiExecutor
 {
@@ -11,5 +11,5 @@ interface WpApiExecutor
      *
      * @return \Illuminate\Support\Collection
      */
-    public function execute(Param $param);
+    public function execute(ExecutableParam $param);
 }

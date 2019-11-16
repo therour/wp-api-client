@@ -2,7 +2,7 @@
 
 namespace Therour\WpApiClient\Query\Concerns;
 
-use Therour\WpApiClient\Param;
+use Therour\WpApiClient\Params\ParamBuilder;
 
 trait BuildParams
 {
@@ -11,28 +11,20 @@ trait BuildParams
     /**
      * get param instance.
      *
-     * @return \Therour\WpApiClient\Param
+     * @return \Therour\WpApiClient\Params\AbstractParam
      */
     protected function param()
     {
         return $this->param ?? ($this->param = $this->newParam());
     }
 
+    /**
+     * build new param class.
+     *
+     * @return \Therour\WpApiClient\Params\AbstractParam
+     */
     protected function newParam()
     {
-        return new Param($this->resourceName);
-    }
-
-    /**
-     * Set the 'page' value to the param.
-     *
-     * @param int $page
-     * @return void
-     */
-    public function page(int $page)
-    {
-        $this->param()->setPage($page);
-
-        return $this;
+        return app(ParamBuilder::class)->build($this->resourceName);
     }
 }

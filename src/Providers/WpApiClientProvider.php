@@ -3,8 +3,9 @@
 namespace Therour\WpApiClient\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Therour\WpApiClient\Params\ParamBuilder;
+use Therour\WpApiClient\Contracts\WpApiExecutor;
 use Therour\WpApiClient\Executor\GuzzleExecutor;
-use Therour\WpApiClient\Executor\WpApiExecutor;
 
 class WpApiClientProvider extends ServiceProvider
 {
@@ -17,10 +18,16 @@ class WpApiClientProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../../configs/wordpress.php', 'wordpress');
 
-        $this->app->singleton(WpApiExecutor::class, function ($app) {
-            $config = $app['config']['wordpress'];
-            return new GuzzleExecutor($config['base_url'], $config['namespace'], $config['version']);
+        $this->app->singleton(ParamBuilder::class, function ($app) {
+            $mapClasses = $app['config']->get('wordpress.classes.params', []);
+            return new ParamBuilder($mapClasses);
         });
+
+        $this->app->singleton(WpApiExecutor::class, function ($app) {
+            $config = $app['config']->get('wordpress');
+            return new GuzzleExecutor($app->make(\GuzzleHttp\Client::class), $config);
+        });
+
     }
 
     /**
@@ -30,8 +37,10 @@ class WpApiClientProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->publishes([
-            __DIR__.'/../../configs/wordpress.php' => config_path('wordpress.php'),
-        ]);
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../../configs/wordpress.php' => config_path('wordpress.php'),
+            ]);
+        }
     }
 }

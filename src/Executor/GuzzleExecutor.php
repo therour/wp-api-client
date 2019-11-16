@@ -3,20 +3,52 @@
 namespace Therour\WpApiClient\Executor;
 
 use GuzzleHttp\Client;
-use Therour\WpApiClient\Param;
-use GuzzleHttp\Exception\ClientException;
+use Therour\WpApiClient\Contracts\WpApiExecutor;
+use Therour\WpApiClient\Contracts\ExecutableParam;
 
 class GuzzleExecutor implements WpApiExecutor
 {
-    protected $baseUrl;
+    /**
+     * Http client.
+     *
+     * @var \GuzzleHttp\Client
+     */
+
+    protected $client;
+
+    /**
+     * base wp rest api uri
+     *
+     * @var string
+     */
+    protected $baseUri;
+
+    /**
+     * namespace of wp rest api.
+     *
+     * @var string
+     */
     protected $namespace;
+
+    /**
+     * version of wp rest api.
+    *
+    * @var string
+    */
     protected $version;
 
-    public function __construct($baseUrl, $namespace, $version)
+    /**
+     * Create an executor class.
+     *
+     * @param \GuzzleHttp\Client $client
+     * @param array $config
+     */
+    public function __construct(Client $client, $config = [])
     {
-        $this->baseUrl = $baseUrl;
-        $this->namespace = $namespace;
-        $this->version = $version;
+        $this->client = $client;
+        $this->baseUrl = $config['base_url'];
+        $this->namespace = $config['namespace'];
+        $this->version = $config['version'];
     }
 
     /**
@@ -24,31 +56,32 @@ class GuzzleExecutor implements WpApiExecutor
      *
      * @return \Illuminate\Support\Collection
      */
-    public function execute(Param $param)
+    public function execute(ExecutableParam $param)
     {
-        $request = $this->createClient()->get($this->buildUrl($param));
+        $request = $this->client->get($url = $this->buildUrl($param));
         return (string) $request->getBody();
     }
 
+    /**
+     * Build base api url.
+     *
+     * @return string
+     */
     protected function buildBaseUrl()
     {
         return $this->baseUrl.'/'.$this->namespace.'/'.$this->version;
     }
 
-    protected function buildUrl(Param $param)
+    /**
+     * Build api resource rest url.
+     *
+     * @param \Therour\WpApiClient\Contracts\ExecutableParam $param
+     * @return string
+     */
+    protected function buildUrl(ExecutableParam $param)
     {
         $resourceUrl = $this->buildBaseUrl().'/'.$param->getResourceName();
         return $resourceUrl.
-            ($param->getId() ? '/'.$param->getId() : '?'.http_build_query($param->getAll()));
-    }
-
-    /**
-     * Create a http client.
-     *
-     * @return \GuzzleHttp\Client
-     */
-    public function createClient()
-    {
-        return new Client();
+            ($param->getId() ? '/'.$param->getId() : '?'.http_build_query($param->getParameters()));
     }
 }
